@@ -2,6 +2,8 @@
 
 Automatizovaný domácí letový displej pro prohlížeč nebo Raspberry Pi. Server pravidelně získává ADS-B polohy z OpenSky, predikuje nejbližší bod trajektorie vůči domu a doplňuje veřejná metadata z ADSBDB.
 
+![Náhled uživatelského rozhraní](UI-image.jpg)
+
 ## Funkce
 
 - serverová OpenSky proxy s cache a obnovou každých 30 sekund,
