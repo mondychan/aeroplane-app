@@ -75,13 +75,21 @@ export class AircraftProvider {
     } catch {}
     const prefix = aircraft.callsign.slice(0,3).toUpperCase()
     const known=AIRLINES[prefix]
-    value.airline ||= known?.name || prefix
+    value.airline ||= known?.name || (aircraft.originCountry === 'Czech Republic' ? 'Česká republika (Soukromý / GA)' : aircraft.originCountry)
     value.airlineIata=resolveAirlineIata(prefix,value.airline,value.airlineIata)
     value.airlineIcao ||= prefix
+
+    // Auto-detect Czech registrations from callsigns (e.g. OKSEE, OK-SEE, OKB, OK1234)
+    if (!value.registration && /^OK[A-Z0-9-]{1,6}$/i.test(aircraft.callsign)) {
+      const cleanReg = aircraft.callsign.toUpperCase().replace(/^OK-?/, '')
+      value.registration = `OK-${cleanReg}`
+    }
+
     if(value.airlineIata)value.airlineLogoUrl=`https://images.kiwi.com/airlines/64/${encodeURIComponent(value.airlineIata)}.png`
     this.metadata.set(aircraft.icao24, { value, expires: Date.now() + 24 * 60 * 60 * 1000 })
     return value
   }
+
   async refresh(config) {
     let source = 'live', states
     try { 
