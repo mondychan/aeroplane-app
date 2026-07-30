@@ -1,0 +1,31 @@
+{
+  "name": "aeroplane-app",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "dev:server": "node --watch server/index.js",
+    "start": "node server/index.js",
+    "build": "vite build",
+    "preview": "vite preview --host 0.0.0.0",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "latest",
+    "compression": "latest",
+    "dotenv": "latest",
+    "express": "latest",
+    "helmet": "latest",
+    "leaflet": "^1.9.4",
+    "lucide-react": "latest",
+    "morgan": "latest",
+    "react": "latest",
+    "react-dom": "latest",
+    "react-leaflet": "^5.0.0",
+    "vite": "latest"
+  },
+  "devDependencies": {
+    "playwright": "^1.62.0"
+  }
+}

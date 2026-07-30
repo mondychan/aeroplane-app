@@ -1,0 +1,18 @@
+services:
+  aeroplane-app:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "3010:3000"
+    env_file:
+      - path: .env
+        required: false
+    volumes:
+      - aeroplane-data:/app/data
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+volumes:
+  aeroplane-data:
