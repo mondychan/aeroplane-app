@@ -1,18 +1,28 @@
 services:
   aeroplane-app:
-    build: .
-    restart: unless-stopped
-    ports:
-      - "3010:3000"
+    image: ghcr.io/mondychan/aeroplane-app:latest
+    container_name: aeroplane-app
+    hostname: "aeroplane-app"
+    restart: "always"
+    # ports:
+    #   - "3000:3000"
+    environment:
+      - TZ=Europe/Prague
     env_file:
       - path: .env
         required: false
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:3000/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
     volumes:
-      - aeroplane-data:/app/data
-    logging:
-      driver: json-file
-      options:
-        max-size: 10m
-        max-file: "3"
-volumes:
-  aeroplane-data:
+      - "/etc/localtime:/etc/localtime:ro"
+      - "/etc/timezone:/etc/timezone:ro"
+      - "/var/lib/docker/volumes/aeroplane-app/data:/app/data"
+
+networks:
+  default:
+    external: true
+    name: web
+
