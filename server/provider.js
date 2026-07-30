@@ -84,7 +84,15 @@ export class AircraftProvider {
   }
   async refresh(config) {
     let source = 'live', states
-    try { states = await this.fetchStates(config); if (!states.length) throw new Error('No traffic') } catch (error) { states = this.demo(config.home); source = 'demo'; this.lastError = error.message }
+    try { 
+      states = await this.fetchStates(config); 
+      this.lastError = null;
+    } catch (error) { 
+      this.lastError = error.message; 
+      states = this.demo(config.home); 
+      source = 'demo'; 
+    }
+
     this.recordPositions(states)
     const filtered = states.filter((item) => item.altitude >= config.minAltitude && item.altitude <= config.maxAltitude).map((item) => {
       const approach = closestApproach(config.home, item)

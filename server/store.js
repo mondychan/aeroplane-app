@@ -14,7 +14,8 @@ export class JsonStore {
   constructor(directory) { this.directory = path.resolve(directory); this.configFile = path.join(this.directory, 'config.json'); this.historyFile = path.join(this.directory, 'history.json') }
   async init() { await mkdir(this.directory, { recursive: true }); const saved=await this.read(this.configFile, DEFAULT_CONFIG);this.config={...DEFAULT_CONFIG,...saved,home:{...DEFAULT_CONFIG.home,...(saved.home||{})}};this.history = await this.read(this.historyFile, []) }
   async read(file, fallback) { try { return JSON.parse(await readFile(file, 'utf8')) } catch { return structuredClone(fallback) } }
-  async atomicWrite(file, value) { const temporary = `${file}.tmp`; await writeFile(temporary, JSON.stringify(value, null, 2)); await rename(temporary, file) }
+  async atomicWrite(file, value) { await mkdir(path.dirname(file), { recursive: true }); const temporary = `${file}.tmp`; await writeFile(temporary, JSON.stringify(value, null, 2)); await rename(temporary, file) }
+
   getConfig() { return this.config }
   async updateConfig(patch) {
     const next={ ...this.config, ...patch, home: { ...this.config.home, ...(patch.home || {}) } }
