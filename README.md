@@ -58,12 +58,6 @@ Každý push do větve `main` spustí testy a vytvoří image pro `linux/amd64` 
 ghcr.io/mondychan/aeroplane-app:latest
 ```
 
-Protože je repozitář privátní, server se musí nejprve přihlásit do GitHub Container Registry pomocí GitHub Personal Access Tokenu s oprávněním `read:packages`:
-
-```bash
-echo "$GHCR_TOKEN" | docker login ghcr.io -u mondychan --password-stdin
-```
-
 Na server přeneste `docker-compose.server.yml`, případně také `.env`, a spusťte:
 
 ```bash
