@@ -1,33 +1,30 @@
-version: "3.6"
 services:
   aeroplane-app:
-    container_name: "aeroplane-app"
+    image: ghcr.io/mondychan/aeroplane-app:latest
+    container_name: aeroplane-app
     hostname: "aeroplane-app"
-    image: "ghcr.io/mondychan/aeroplane-app:latest"
-    pull_policy: always
+    restart: "always"
+    # ports:
+    #   - "3000:3000"
     environment:
-      - "TZ=Europe/Prague"
+      - TZ=Europe/Prague
     env_file:
       - path: .env
         required: false
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.aeroplane-app.rule=Host(`planes.${domain}`)"
-      - "traefik.http.services.aeroplane-app.loadbalancer.server.port=3000"
-      - "traefik.http.services.aeroplane-app.loadbalancer.server.scheme=http"
-      - "traefik.http.routers.aeroplane-app.tls.certresolver=myresolver"
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/health || exit 1"]
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:3000/health || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 5
-    restart: "unless-stopped"
     volumes:
+      - "/etc/localtime:/etc/localtime:ro"
+      - "/etc/timezone:/etc/timezone:ro"
       - "/var/lib/docker/volumes/aeroplane-app/data:/app/data"
 
 networks:
   default:
     external: true
     name: web
+
 
 
