@@ -51,6 +51,8 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+          logout: false
+
 
       - name: Generate image metadata
         id: meta
