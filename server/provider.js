@@ -55,14 +55,28 @@ export class AircraftProvider {
     const cached = this.metadata.get(aircraft.icao24)
     if (cached && cached.expires > Date.now()) return cached.value
     let value = {}
+
+    // --- Early registration detection (before photo lookup so we can use it) ---
+    // Auto-detect Czech registrations from callsigns (OKSEE → OK-SEE, OKB → OK-B)
+    if (!value.registration && /^OK[A-Z0-9]{1,6}$/i.test(aircraft.callsign)) {
+      const cleanReg = aircraft.callsign.toUpperCase().replace(/^OK/, '')
+      value.registration = `OK-${cleanReg}`
+    }
+
     try {
       const response = await fetch(`https://api.adsbdb.com/v0/aircraft/${aircraft.icao24}`, { signal: AbortSignal.timeout(4000) })
-      if (response.ok) { const data = (await response.json()).response?.aircraft || {}; value = { registration: data.registration, aircraftType: data.type, manufacturer: data.manufacturer, owner: data.registered_owner, photoUrl: data.url_photo_thumbnail } }
+      if (response.ok) { const data = (await response.json()).response?.aircraft || {}; if(data.registration)value.registration=data.registration; if(data.type)value.aircraftType=data.type; if(data.manufacturer)value.manufacturer=data.manufacturer; if(data.registered_owner)value.owner=data.registered_owner; if(data.url_photo_thumbnail)value.photoUrl=data.url_photo_thumbnail }
     } catch {}
+
     if(!value.photoUrl)try{
-      const prefix=aircraft.callsign.slice(0,3).toUpperCase(),looksLikeRegistration=!AIRLINES[prefix]&&/^[A-Z0-9-]{4,8}$/.test(aircraft.callsign)
-      const lookups=looksLikeRegistration?[`reg/${encodeURIComponent(aircraft.callsign)}`,`hex/${encodeURIComponent(aircraft.icao24)}`]:[`hex/${encodeURIComponent(aircraft.icao24)}`]
-      for(const lookup of lookups){
+      const prefix=aircraft.callsign.slice(0,3).toUpperCase()
+      const looksLikeRegistration=!AIRLINES[prefix]&&/^[A-Z0-9-]{4,8}$/.test(aircraft.callsign)
+      // Build lookups - include hyphenated registration variant when it differs from callsign
+      const lookupSet = new Set()
+      if(looksLikeRegistration) lookupSet.add(`reg/${encodeURIComponent(aircraft.callsign)}`)
+      if(value.registration && value.registration !== aircraft.callsign) lookupSet.add(`reg/${encodeURIComponent(value.registration)}`)
+      lookupSet.add(`hex/${encodeURIComponent(aircraft.icao24)}`)
+      for(const lookup of lookupSet){
         const response=await fetch(`https://api.planespotters.net/pub/photos/${lookup}`,{headers:{'User-Agent':`AeroplaneApp/0.3 (+${this.contactUrl})`},signal:AbortSignal.timeout(5000)})
         if(!response.ok)continue
         const photo=(await response.json()).photos?.[0]
@@ -79,16 +93,11 @@ export class AircraftProvider {
     value.airlineIata=resolveAirlineIata(prefix,value.airline,value.airlineIata)
     value.airlineIcao ||= prefix
 
-    // Auto-detect Czech registrations from callsigns (e.g. OKSEE, OK-SEE, OKB, OK1234)
-    if (!value.registration && /^OK[A-Z0-9-]{1,6}$/i.test(aircraft.callsign)) {
-      const cleanReg = aircraft.callsign.toUpperCase().replace(/^OK-?/, '')
-      value.registration = `OK-${cleanReg}`
-    }
-
     if(value.airlineIata)value.airlineLogoUrl=`https://images.kiwi.com/airlines/64/${encodeURIComponent(value.airlineIata)}.png`
     this.metadata.set(aircraft.icao24, { value, expires: Date.now() + 24 * 60 * 60 * 1000 })
     return value
   }
+
 
   async refresh(config) {
     let source = 'live', states
