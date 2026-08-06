@@ -53,7 +53,12 @@ app.get('/api/credentials/opensky', (_req,res)=>res.json(credentialStatus()))
 app.post('/api/credentials/opensky/verify',async(_req,res)=>{credentialValidation=await provider.verifyCredentials();res.status(credentialValidation.valid?200:401).json(credentialStatus())})
 app.put('/api/credentials/opensky',async(req,res)=>{try{await credentialStore.save(req.body);provider.setCredentials(credentialStore.get());credentialValidation=await provider.verifyCredentials();if(credentialValidation.valid)await refresh();res.status(credentialValidation.valid?200:401).json(credentialStatus())}catch(error){res.status(400).json({error:error.message})}})
 app.delete('/api/credentials/opensky',async(_req,res)=>{await credentialStore.remove();provider.setCredentials(legacyCredentials);credentialValidation=provider.credentials?await provider.verifyCredentials():{valid:false,verifiedAt:null,error:null};await refresh();res.json(credentialStatus())})
-app.get('/api/history', (req,res) => res.json({ items:store.getHistory(Math.min(Number(req.query.limit) || 50, 500)), stats:store.getStats() }))
+app.get('/api/history', (req,res) => {
+  const limit = req.query.limit !== undefined ? Number(req.query.limit) : 0;
+  const date = req.query.date ? String(req.query.date) : null;
+  const q = req.query.q ? String(req.query.q) : '';
+  res.json({ items: store.getHistory({ limit, date, q }), stats: store.getStats() });
+})
 app.get('/api/weather', async (_req,res) => {
   const { latitude,longitude }=store.getConfig().home
   try { const response=await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,weather_code,wind_speed_10m,visibility&wind_speed_unit=kmh`,{signal:AbortSignal.timeout(5000)});res.status(response.status).json(await response.json()) } catch { res.status(503).json({error:'Weather unavailable'}) }

@@ -85,7 +85,18 @@ export class AircraftProvider {
     }catch{}
     try {
       const response = await fetch(`https://api.adsbdb.com/v0/callsign/${encodeURIComponent(aircraft.callsign)}`, { signal: AbortSignal.timeout(4000) })
-      if (response.ok) { const route = (await response.json()).response?.flightroute || {}; value.departure = route.origin?.iata_code || route.origin?.icao_code; value.arrival = route.destination?.iata_code || route.destination?.icao_code; value.airline ||= route.airline?.name; value.airlineIata = route.airline?.iata || route.airline?.iata_code || value.airlineIata; value.airlineIcao = route.airline?.icao || route.airline?.icao_code || value.airlineIcao;if(route.destination?.latitude!=null)value.destinationAirport={iata:route.destination.iata_code,icao:route.destination.icao_code,name:route.destination.name,latitude:route.destination.latitude,longitude:route.destination.longitude,elevation:route.destination.elevation};if(route.origin?.latitude!=null)value.originAirport={iata:route.origin.iata_code,icao:route.origin.icao_code,name:route.origin.name,latitude:route.origin.latitude,longitude:route.origin.longitude} }
+      if (response.ok) { 
+        const route = (await response.json()).response?.flightroute || {}; 
+        value.departure = route.origin?.iata_code || route.origin?.icao_code; 
+        value.arrival = route.destination?.iata_code || route.destination?.icao_code; 
+        value.departureName = route.origin?.name || route.origin?.municipality || route.origin?.country;
+        value.arrivalName = route.destination?.name || route.destination?.municipality || route.destination?.country;
+        value.airline ||= route.airline?.name; 
+        value.airlineIata = route.airline?.iata || route.airline?.iata_code || value.airlineIata; 
+        value.airlineIcao = route.airline?.icao || route.airline?.icao_code || value.airlineIcao;
+        if(route.destination?.latitude!=null)value.destinationAirport={iata:route.destination.iata_code,icao:route.destination.icao_code,name:route.destination.name,latitude:route.destination.latitude,longitude:route.destination.longitude,elevation:route.destination.elevation};
+        if(route.origin?.latitude!=null)value.originAirport={iata:route.origin.iata_code,icao:route.origin.icao_code,name:route.origin.name,latitude:route.origin.latitude,longitude:route.origin.longitude} 
+      }
     } catch {}
     const prefix = aircraft.callsign.slice(0,3).toUpperCase()
     const known=AIRLINES[prefix]
