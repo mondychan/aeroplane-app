@@ -9,14 +9,16 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { AircraftProvider } from './provider.js'
 import { JsonStore } from './store.js'
-import { CredentialStore } from './credentials.js'
+import { ApiKeyStore, CredentialStore } from './credentials.js'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const port = Number(process.env.PORT || 3000)
 const interval = Math.max(15000, Number(process.env.REFRESH_INTERVAL_MS || 30000))
 const store = new JsonStore(process.env.DATA_DIR || path.join(root, 'data'))
 const credentialStore = new CredentialStore(process.env.DATA_DIR || path.join(root,'data'),process.env.CREDENTIALS_ENCRYPTION_KEY)
+const cartoKeyStore = new ApiKeyStore(process.env.DATA_DIR || path.join(root,'data'),process.env.CREDENTIALS_ENCRYPTION_KEY,'carto.basemaps.key.enc')
 await credentialStore.init()
+await cartoKeyStore.init()
 const legacyCredentials=process.env.OPENSKY_USERNAME&&process.env.OPENSKY_PASSWORD?{clientId:process.env.OPENSKY_USERNAME,clientSecret:process.env.OPENSKY_PASSWORD}:null
 const provider = new AircraftProvider({ timeout: Number(process.env.OPENSKY_TIMEOUT_MS || 9000), credentials:credentialStore.get()||legacyCredentials,contactUrl:process.env.APP_CONTACT_URL })
 await store.init()
@@ -53,6 +55,9 @@ app.get('/api/credentials/opensky', (_req,res)=>res.json(credentialStatus()))
 app.post('/api/credentials/opensky/verify',async(_req,res)=>{credentialValidation=await provider.verifyCredentials();res.status(credentialValidation.valid?200:401).json(credentialStatus())})
 app.put('/api/credentials/opensky',async(req,res)=>{try{await credentialStore.save(req.body);provider.setCredentials(credentialStore.get());credentialValidation=await provider.verifyCredentials();if(credentialValidation.valid)await refresh();res.status(credentialValidation.valid?200:401).json(credentialStatus())}catch(error){res.status(400).json({error:error.message})}})
 app.delete('/api/credentials/opensky',async(_req,res)=>{await credentialStore.remove();provider.setCredentials(legacyCredentials);credentialValidation=provider.credentials?await provider.verifyCredentials():{valid:false,verifiedAt:null,error:null};await refresh();res.json(credentialStatus())})
+app.get('/api/credentials/carto', (_req,res)=>res.json(cartoKeyStore.status({includeKey:true})))
+app.put('/api/credentials/carto',async(req,res)=>{try{res.json(await cartoKeyStore.save(req.body))}catch(error){res.status(400).json({error:error.message})}})
+app.delete('/api/credentials/carto',async(_req,res)=>res.json(await cartoKeyStore.remove()))
 app.get('/api/history', (req,res) => {
   const limit = req.query.limit !== undefined ? Number(req.query.limit) : 0;
   const date = req.query.date ? String(req.query.date) : null;

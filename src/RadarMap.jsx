@@ -1,4 +1,4 @@
-import { Fragment, useEffect } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import { Circle, MapContainer, Marker, Polyline, TileLayer, Tooltip, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -20,9 +20,19 @@ function projectedPoint(aircraft,seconds){
 const TILES={dark:'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',light:'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',satellite:'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'}
 
 export function RadarMap({home,aircraft,selected,onSelect,radiusKm,mapStyle='dark',displayTooltips=false}){
-  return <MapContainer center={[home.latitude,home.longitude]} zoom={9} zoomControl={true} attributionControl={false} className="live-map">
+  const [cartoApiKey,setCartoApiKey]=useState('')
+  useEffect(()=>{
+    const loadKey=()=>fetch('/api/credentials/carto').then(response=>response.json()).then(data=>setCartoApiKey(data.apiKey||'')).catch(()=>{})
+    loadKey()
+    window.addEventListener('carto-key-changed',loadKey)
+    return()=>window.removeEventListener('carto-key-changed',loadKey)
+  },[])
+  const tileUrl=TILES[mapStyle]||TILES.dark
+  const cartoUrl=mapStyle==='satellite'||!cartoApiKey?tileUrl:`${tileUrl}?key=${encodeURIComponent(cartoApiKey)}`
+  const attribution=mapStyle==='satellite'?'Tiles © Esri':'© CARTO © OpenStreetMap contributors'
+  return <MapContainer center={[home.latitude,home.longitude]} zoom={9} zoomControl={true} attributionControl={true} className="live-map">
     <Recenter home={home}/>
-    <TileLayer key={mapStyle} url={TILES[mapStyle]||TILES.dark} subdomains={mapStyle==='satellite'?'abc':'abcd'} maxZoom={19}/>
+    <TileLayer key={`${mapStyle}-${cartoApiKey}`} url={cartoUrl} attribution={attribution} subdomains={mapStyle==='satellite'?'abc':'abcd'} maxZoom={19}/>
     <Circle center={[home.latitude,home.longitude]} radius={radiusKm*1000} pathOptions={{color:'#23899b',weight:1,opacity:.25,fillOpacity:.02}}/>
     <Circle center={[home.latitude,home.longitude]} radius={700} pathOptions={{color:'#55d9e5',weight:2,fillColor:'#2f9cff',fillOpacity:.4}}><Tooltip direction="top">{home.label}</Tooltip></Circle>
     {aircraft.map((item,index)=><Fragment key={item.icao24}>
